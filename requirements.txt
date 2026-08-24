@@ -1,0 +1,15 @@
+torch>=2.1
+transformers>=4.44
+accelerate
+datasets
+evaluate
+nltk
+numpy
+scipy
+gensim
+krippendorff
+openpyxl
+openai>=1.0
+pydantic>=2.0
+jinja2
+tqdm

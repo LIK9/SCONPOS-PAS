@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+
+# Large model/data assets (see README for how to obtain/build these)
+/GoogleNews-vectors-negative300.bin
+/nli/model/
+/nli/labeling_model/
+/dataset/*/original/
+/dataset/*/processed/
+/dataset/*/persona_labeling/
+
+# Generated artifacts
+/result/
+/outputs/
+/logs/
+
+# Env / secrets
+.env
+*.key
+
+# OS / editor
+.DS_Store
+.vscode/
