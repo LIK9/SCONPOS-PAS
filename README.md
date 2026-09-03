@@ -81,10 +81,12 @@ These are not included in this repository due to their size and license terms:
 The paper uses two datasets:
 
 - **PersonaChat** ([Zhang et al., 2018](https://github.com/facebookresearch/ParlAI/tree/main/projects/personachat)), with the predefined topic taxonomy and topic-labeled persona
-  attributes from PANDA ([Kim et al., 2024](https://aclanthology.org/2024.emnlp-main.669/)).
+  attributes from PANDA ([Kim et al., 2024](https://aclanthology.org/2024.emnlp-main.669/);
+  code: [jin62304/PANDA](https://github.com/jin62304/PANDA)).
   `processing.py`'s `turn_split_personachat()` expects a topic-labeled PANDA-style file at
   `./dataset/original/panda_sample.json`.
-- **MBTI-S2Conv** ([Tu et al., 2023 / CharacterChat](https://github.com/morecry/CharacterChat)).
+- **MBTI-S2Conv** ([Tu et al., 2023](https://arxiv.org/abs/2308.10278); code:
+  [morecry/CharacterChat](https://github.com/morecry/CharacterChat)).
   `collect_all_persona_mbti()`, `sample_dataset_mbti()`, and `turn_split_mbti()` in
   `processing.py` expect the dataset's raw `mbti_1024_bank.json` and `mbti_s2conv.json` files
   under `./dataset/MBTI_S2Conv/original/`.
