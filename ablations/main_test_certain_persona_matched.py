@@ -1006,9 +1006,9 @@ def compute_metrics(args):
                 off_topic_value_total += off_topic_value
                 excess_of_quaqntity_value_total += excess_of_quaqntity_value
 
-                agent_pas += p3_score_topic_level(query_labeled_topic, response_topic_list, agent_persona_topic_list, generated_response)
-                # partner_pas += p3_score_topic_level(query_labeled_topic, response_topic_list, partner_persona_topic_list, generated_response)
-                both_pas += p3_score_topic_level(query_labeled_topic, response_topic_list, both_persona_topic_list, generated_response)
+                agent_pas += persona_appropriateness_score(query_labeled_topic, response_topic_list, agent_persona_topic_list)
+                # partner_pas += persona_appropriateness_score(query_labeled_topic, response_topic_list, partner_persona_topic_list)
+                both_pas += persona_appropriateness_score(query_labeled_topic, response_topic_list, both_persona_topic_list)
 
                 response_len += len(tokenizer(generated_response)['input_ids'])
 

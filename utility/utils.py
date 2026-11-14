@@ -13,31 +13,19 @@ import nltk
 from nltk.corpus import stopwords
 import gensim
 
+# PAS (Persona Appropriateness Score) lives in utility/pas.py (NumPy-only, usable on its own).
+from utility.pas import (
+    _kldiv, js_dist, _to_prob,
+    get_topic, get_query_labeled_persona,
+    persona_appropriateness_score, pas_from_record, is_persona_relevant, corpus_pas,
+)
 
 
-def _kldiv(P, Q):
-    # return np.sum([v for v in A * np.log2(A/B) if not np.isnan(v)])
-
-    P = np.asarray(P, dtype=np.float64)
-    Q = np.asarray(Q, dtype=np.float64)
-
-    eps = 1e-12
-    P = np.clip(P, eps, 1)
-    Q = np.clip(Q, eps, 1)
-
-    return np.sum(P * np.log2(P / Q))
-
-def js_dist(P, Q):
+def p3_score_topic_level(query_labeled_topic, response_labeled_topic, agent_persona_topic_list, response=None):
+    """Deprecated alias of ``persona_appropriateness_score`` (PAS), kept for backward compatibility."""
+    return persona_appropriateness_score(query_labeled_topic, response_labeled_topic, agent_persona_topic_list)
 
 
-    P = np.array(P)
-    Q = np.array(Q)
-
-    M = 0.5 * (P + Q)
-
-    result = 0.5 * (_kldiv(P, M) +_kldiv(Q, M))
-    return np.sqrt(result)
-    # return result
 
 def hellinger_distance(p, q):
 
@@ -320,42 +308,6 @@ def _sigmoid(x):
 
 
 
-def _to_prob(vec):
-    v = np.asarray(vec, dtype=float)
-    s = v.sum()
-    if s <= 0:
-        v = np.zeros_like(v, dtype=float)
-        v[0] = 1.0
-        s = 1.0
-    return v / s
-
-
-def get_topic(persona_list, agent_persona, user_persona, self_labels, partner_labels):
-    topic_list = []
-
-    for persona in persona_list:
-        if persona in agent_persona:
-            persona_idx = agent_persona.index(persona)
-            topic = self_labels[persona_idx]
-            topic_list.extend(topic)
-        elif persona in user_persona:
-            persona_idx = user_persona.index(persona)
-            topic = partner_labels[persona_idx]
-            topic_list.extend(topic)
-
-    return topic_list
-
-
-def get_query_labeled_persona(query_labeled_topic, agent_persona_list, self_labels):
-    query_labeled_persona = []
-
-    for agent_persona in agent_persona_list:
-        agent_persona_topic_list = self_labels[ agent_persona_list.index(agent_persona) ]
-        if any(agent_persona_topic in query_labeled_topic for agent_persona_topic in agent_persona_topic_list):
-            query_labeled_persona.append(agent_persona)
-    return query_labeled_persona
-
-
 def pad_prompt_to_match_token_length(tokenizer, render_fn, target_len, max_pad_chars=2000):
     # render_fn(num_pad_spaces)가 만든 텍스트의 토큰 길이가 target_len 이상이 될 때까지
     # 맨 앞의 공백 개수를 한 글자씩 늘려가며 재생성한다.
@@ -415,105 +367,3 @@ def parse_to_list(s):
                 #     return [6], False
                 parsing_error = True
     return result, parsing_error
-
-
-# def p3_score_persona_level(query_labeled_persona, generated_response_labeled_persona, agent_persona_list):
-
-#     response_persona_indices = []
-#     for persona in generated_response_labeled_persona:
-#         if persona in agent_persona_list:
-#             response_persona_indices.append(agent_persona_list.index(persona))
-
-#     response_persona_vector = [0] * (len(agent_persona_list) + 1)
-#     if len(response_persona_indices) == 0:
-#         response_persona_vector[0] = 1
-#     else:
-#         for idx in response_persona_indices:
-#             response_persona_vector[idx+1] += 1
-
-#     query_persona_indices = []
-#     for persona in query_labeled_persona:
-#         if persona in agent_persona_list:
-#             query_persona_indices.append(agent_persona_list.index(persona))
-
-#     query_persona_vector = [0] * (len(agent_persona_list) + 1)
-#     if len(query_persona_indices) == 0:
-#         query_persona_vector[0] = 1
-#     else:
-#         for idx in query_persona_indices:
-#             query_persona_vector[idx+1] += 1
-
-#     p_query = _to_prob(query_persona_vector)      
-#     p_resp  = _to_prob(response_persona_vector)   
-
-#     wd_1d = _wasserstein_1d(p_query, p_resp)
-#     return wd_1d
-
-
-def p3_score_topic_level(query_labeled_topic, response_labeled_topic, agent_persona_topic_list, response):
-
-
-    # for i, topic in enumerate(response_labeled_topic):
-    #     if topic > 8:
-    #         response_labeled_topic[i] = topic - 1
-
-    # for i, topic in enumerate(query_labeled_topic):
-    #     if topic > 8:
-    #         query_labeled_topic[i] = topic - 1
-
-    # for i, topic in enumerate(agent_persona_topic_list):
-    #     if topic > 8:
-    #         agent_persona_topic_list[i] = topic - 1
-
-    # response_labeled_topic = [2]
-    # query_labeled_topic = [12]
-    # agent_persona_topic_list = response_labeled_topic
-
-
-    # agent_persona_topic_list = [0,1,2,3,4,5,6,7,8,10,11,12,13,14]
-
-    response_labeled_topic = sorted(response_labeled_topic)
-    query_labeled_topic = sorted(query_labeled_topic)
-    agent_persona_topic_list = sorted(agent_persona_topic_list)
-
-    topic_vocab = sorted(list(set(agent_persona_topic_list)))
-    topic_vector_len = len(topic_vocab)
-
-
-    query_labeled_topic = [t for t in query_labeled_topic if t in topic_vocab]
-    response_labeled_topic = [t for t in response_labeled_topic if t in topic_vocab]
-
-    response_topic_vector = [0] * (topic_vector_len+1)
-    if len(response_labeled_topic) == 0:
-        response_topic_vector[0] = 1
-    else:
-        for topic in response_labeled_topic:
-            topic_idx = topic_vocab.index(topic)
-            response_topic_vector[topic_idx+1] += 1
-
-
-
-    query_topic_vector = [0] * (topic_vector_len+1)
-    if len(query_labeled_topic) == 0:
-        query_topic_vector[0] = 1
-    else:
-        for topic in query_labeled_topic:
-            topic_idx = topic_vocab.index(topic)
-            query_topic_vector[topic_idx+1] += 1
-
-
-
-    p_query = _to_prob(query_topic_vector)
-
-    # if p_query[0] != 1:
-    #     print(p_query)  
-        
-    p_resp  = _to_prob(response_topic_vector) 
-
-    # return _wasserstein_1d(p_resp, p_query)
-
-    return (1-js_dist(p_query, p_resp))
-
-    # return _tvd(p_query, p_resp)
-    # return hellinger_distance(p_query, p_resp)
-

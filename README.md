@@ -32,8 +32,10 @@ gpt_inference.py               # GPT-4.1 baseline generation via the OpenAI Batc
 processing.py                  # dataset construction + GPT-based topic/persona labeling
                               # (PersonaChat, MBTI-S2Conv)
 
-utility/utils.py              # metric implementations: PAS (js_dist / p3_score_topic_level),
-                              # Overuse (ovs_eval), C-Score, P-Dist, P-F1, BLEU, topic helpers
+evaluate_pas.py                # standalone PAS evaluation CLI (NumPy only; see "PAS" below)
+
+utility/pas.py                # PAS implementation (persona_appropriateness_score, corpus_pas)
+utility/utils.py              # other metrics: Overuse (ovs_eval), C-Score, P-Dist, P-F1, BLEU
 prompts/
   PersonaChat/{self,partner}/{sub_prompt.py,main_prompt.py}
   MBTI_S2Conv/{self,partner}/{sub_prompt.py,main_prompt.py}
@@ -126,8 +128,95 @@ the paper. MBTI-S2Conv instead reuses the dataset's own utterance-level topic la
    `--test_task eval_ovs`, which writes an `.xlsx` report under
    `./result/<dataset>/<model_name>/main/metrics/...`.
 
+To compute **only PAS** (no GPU or extra models), use `evaluate_pas.py` — see the next
+section.
+
 The GPT-4.1 baseline (used in the Section 2 analysis) is generated separately via the OpenAI
 Batch API — see `gpt_inference.py` / `inference_gpt.sh` (requires `OPENAI_API_KEY`).
+
+## PAS (Persona Appropriateness Score)
+
+PAS is implemented in [`utility/pas.py`](utility/pas.py), which depends only on NumPy and
+can be copied into other projects as-is.
+
+### Definition
+
+For each sample, build two topic distributions over the speaker's persona topics
+(plus an extra slot 0 meaning "no persona topic"):
+
+- **query distribution** — topics labeled on the partner's last utterance, i.e. which
+  persona topics the context calls for (slot 0 if none);
+- **response distribution** — topics of the persona attributes the generated response
+  actually uses (slot 0 if none).
+
+```
+PAS = 1 − JSD(p_query, p_response)      # Jensen–Shannon distance, base 2 → PAS ∈ [0, 1]
+```
+
+Using persona when the context doesn't call for it (**overuse**) and ignoring a persona
+topic the context calls for (**underuse**) both lower PAS. The corpus-level score reported
+in the paper is the **harmonic mean** of the mean PAS over the *persona-relevant* samples
+(query matches ≥1 persona attribute) and the *persona-irrelevant* samples (query matches
+none), so always or never using persona cannot score well.
+
+### Use it in Python
+
+```python
+from utility.pas import persona_appropriateness_score, corpus_pas
+
+# Speaker's persona topics: 0, 3, 4. The query asks about topic 3;
+# the response uses persona attributes with topics 0 and 3.
+persona_appropriateness_score(query_topics=[3], response_topics=[0, 3],
+                              persona_topics=[0, 3, 4])            # -> 0.442
+
+# Corpus-level PAS over a list of labeled records (format below)
+corpus_pas(records, setting="self", persona_scope="agent")
+# -> {'relevant': ..., 'irrelevant': ..., 'pas': <harmonic mean>, 'n_relevant': ..., 'n_irrelevant': ...}
+```
+
+### Run it from the command line
+
+```bash
+python evaluate_pas.py \
+  --input ./result/PersonaChat/llama3/main/response_labeled/self/default/all_persona_input/processed/self/default/all_persona_input.json \
+  --setting self
+```
+
+Example output:
+
+```
+            relevant  irrelevant  PAS (HM)
+PAS           0.4407      0.2889    0.3490
+PAS(Both)     0.3950      0.2393    0.2980
+```
+
+`PAS` uses the speaker's persona topics only; `PAS(Both)` uses speaker + partner persona
+topics. These are the same values `main_test.py --test_task eval_ovs` writes to its `.xlsx`
+report.
+
+### Input format
+
+A JSON list of records (the output of `processing.py --process_task persona_labeling`):
+
+```json
+{
+  "agent_persona": ["i enjoy shopping.", "i work in an office.", "..."],
+  "self_labels": [[0], [3], "..."],
+  "user_persona": ["cooking is my passion.", "..."],
+  "partner_labels": [[0], "..."],
+  "query_labeled_topic": [3],
+  "generated_response_labeled_persona": ["i work in an office."]
+}
+```
+
+- `self_labels[i]` / `partner_labels[i]`: topic ids of `agent_persona[i]` / `user_persona[i]`
+  (PersonaChat uses PANDA's topic taxonomy; MBTI-S2Conv uses its own topic labels).
+- `query_labeled_topic`: topic ids of the partner's last utterance.
+- `generated_response_labeled_persona`: persona attributes that the generated response uses
+  (labeled by GPT in `processing.py`; any labeler that outputs the same fields works).
+
+To apply PAS to your own data, you only need these topic labels — the dialogue model and
+labeler can be anything.
 
 ## Ablations
 
