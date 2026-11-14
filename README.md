@@ -165,10 +165,24 @@ Released under the MIT License (see `LICENSE`).
 ## Citation
 
 ```bibtex
-@inproceedings{shin2026sconpos,
-  title     = {Controlling and Assessing Appropriate Persona Use in {LLM}-based Dialogue Generation},
-  author    = {Shin, Jongkyung and Lee, Inkyu and Lim, Chiehyeon},
-  booktitle = {Proceedings of the Association for Computational Linguistics},
-  year      = {2026}
+@inproceedings{shin-etal-2026-controlling,
+    title = "Controlling and Assessing Appropriate Persona Use in {LLM}-based Dialogue Generation",
+    author = "Shin, Jongkyung  and
+      Lee, Inkyu  and
+      Lim, Chiehyeon",
+    editor = "Lee, Hung-Yi  and
+      Dev, Sunipa  and
+      Li, Junyi Jessy  and
+      Elliott, Desmond",
+    booktitle = "Proceedings of the 2026 Conference on Empirical Methods in Natural Language Processing",
+    month = oct,
+    year = "2026",
+    address = "Budapest, Hungary",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2026.emnlp-main.2029/",
+    doi = "10.18653/2026.emnlp-main.2029",
+    pages = "46212--46239",
+    ISBN = "979-8-89176-459-0",
+    abstract = "In persona-based dialogue generation (PDG), LLMs often overuse persona attributes by incorporating them regardless of dialogue context, resulting in unnatural responses. Despite its practical significance, the underlying causes remain unexplored, with no method to mitigate this problem or metric to assess the appropriateness of persona use. To address these issues, we first conduct a comprehensive analysis of LLM-based PDG, revealing that LLMs exhibit a systematic bias to incorporate all given persona attributes, and that existing metrics fail to capture contextual appropriateness. Building on these findings, we propose Self-CONtrastive Persona Overuse Suppression (SCONPOS) to mitigate overuse by directly intervening in LLMs' internal representations at the prompt encoding stage, without requiring any response generation. We further propose the Persona Appropriateness Score (PAS), a novel metric that penalizes both overuse and underuse. Experimental results demonstrate that SCONPOS systematically reduces the overuse, and PAS captures the contextual appropriateness of persona use."
 }
 ```
